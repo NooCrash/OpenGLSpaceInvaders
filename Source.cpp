@@ -83,6 +83,7 @@ int main() {
 
 		// tells the gpu to use this shader program
 		shader.use();
+		shader.setFloat("offset", -0.1f);
 		
 		//glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
@@ -93,6 +94,8 @@ int main() {
 
 		// tells the gpu to use this shader program
 		shader.use();
+		shader.setFloat("offset", 0.1f);
+
 		bind(&VAOs[1], &VBOs[1], second_triangle, second_triangle_size);
 		glBindVertexArray(VAOs[1]);
 		glDrawArrays(GL_TRIANGLES, 0, 3);

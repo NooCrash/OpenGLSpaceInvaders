@@ -4,12 +4,15 @@ layout (location = 1) in vec3 aColor; // the color variable has attribute positi
 
 // output a color to the fragment shader
 out vec3 ourColor;
+out vec4 pos; 
+
+uniform float offset;
 
 void main(){
-	
-	// gl_Position = vec4(aPos.x * -1.0f, aPos.y * -1.0f, aPos.z, 1.0f);
-	gl_Position = vec4(aPos, 1.0);
-	
+		
+	gl_Position = vec4(aPos.x + offset, aPos.y, aPos.z, 1.0);
+	pos = gl_Position;
+
 	// set ourColor to the input color we got from the vertex data
 	ourColor = aColor; 
 }
