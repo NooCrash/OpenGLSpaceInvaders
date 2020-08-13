@@ -58,8 +58,7 @@ int main() {
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-	const char* directory = "C:\\Users\\Sebastian\\source\\repos\\SpaceInvaders\\";
-	Shader shader = Shader("C:\\Users\\Sebastian\\source\\repos\\SpaceInvaders\\VertexShader.vs", "C:\\Users\\Sebastian\\source\\repos\\SpaceInvaders\\FragmentShader.fs");
+	Shader shader = Shader(".\\VertexShader.vs", ".\\FragmentShader.fs");
 
 	unsigned int VAOs[2];
 	unsigned int VBOs[2];
