@@ -143,8 +143,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Downloads\glad\src\glad.c" />
-    <ClCompile Include="HelloTriangle.cpp" />
-    <ClCompile Include="PhilipsBug.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
