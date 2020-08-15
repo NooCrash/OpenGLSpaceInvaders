@@ -2,28 +2,31 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "Shader.h"
+#include "stb_image.h"
 
 // binds the VAO and the VBO with the vertices
 void bind(unsigned int* VAO, unsigned int* VBO, float *vertices, int verticesSize);
 
+void move(unsigned int startPos, bool increase);
+
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-// First triangle
-float first_triangle[] = {
-	// positions			// colors
-	-0.8f,  0.8f, 0.0f,     0.0f, 1.0f, 0.0f, // top left
-	-0.8f, -0.8f, 0.0f,     0.0f, 1.0f, 0.0f, // bottom left
-	 0.0f,  0.0f, 0.0f,     0.0f, 1.0f, 0.0f  // rigth side
+float vertices[] = {
+	// positions          // colors           // texture coords
+	 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+	 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+	-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+	-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f	// top left 
 };
 
-// Second Triangle
-float second_triangle[] = {
-	 // positions			// colors
-	 0.8f,  0.8f, 0.0f,     0.0f, 0.0f, 0.8f,  // top right
-	 0.8f, -0.8f, 0.0f,		0.0f, 0.0f, 0.8f,  // botttom right
-	 0.0f,  0.0f, 0.0f,		0.0f, 0.0f, 0.8f   // center
+unsigned short offset = 8;
+
+unsigned int indices[] = {
+	0, 1, 3, // first triangle
+	1, 2, 3  // second triangle
 };
+
 
 int main() {
 	// init the GLFW
@@ -60,15 +63,92 @@ int main() {
 
 	Shader shader = Shader(".\\VertexShader.vs", ".\\FragmentShader.fs");
 
-	unsigned int VAOs[2];
-	unsigned int VBOs[2];
+	unsigned int VAO, VBO, EBO;
 	
-	// generate the VAO and the VBO
-	glGenVertexArrays(2, VAOs);
-	glGenBuffers(2, VBOs);
+	// generate the VAO, VBO and EBO
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
 
-	int first_triangle_size =  sizeof(first_triangle);
-	int second_triangle_size = sizeof(second_triangle);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// position attribute
+	// location, size, type, normalized, stride = byte offset between consecutive vertex attributes, offset
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// color attribute
+	// location, size, type, normalized, stride = byte offset between consecutive vertex attributes, offset = starting pos
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// texture attribute
+	// location, size(x,y,z), type, normalized, stride = byte offset between consecutive vertex attributes, offset = starting pos
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	unsigned int texture1, texture2;
+
+	// create the texture
+	glGenTextures(1, &texture1);
+	glGenTextures(1, &texture2);
+
+	// bind the texture
+	glBindTexture(GL_TEXTURE_2D, texture1);
+
+	// set the texture warpping/filtering options
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	// load the image properties into these variables
+	int width, height, nrChannels;
+	unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+	if (data) {
+		// generate the texture
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// free the image data
+		stbi_image_free(data);
+	}
+	else {
+		std::cout << "Failed to load the texture: awesomeface.png" << std::endl;
+	}	
+
+	// bind the texture
+	glBindTexture(GL_TEXTURE_2D, texture2);
+
+	// set the texture warpping/filtering options
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	// load the image properties into these variables
+	stbi_set_flip_vertically_on_load(true);
+	data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+	if (data) {
+		// generate the texture
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// free the image data
+		stbi_image_free(data);
+	}
+	else {
+		std::cout << "Failed to load the texture: awesomeface.png" << std::endl;
+	}
+
+	
+
+	
 
 	/*float timeValue = glfwGetTime();
 	float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
@@ -83,23 +163,40 @@ int main() {
 
 		// tells the gpu to use this shader program
 		shader.use();
-		shader.setFloat("offset", -0.1f);
-		
+		glUniform1i(glGetUniformLocation(shader.ID, "texture1"), 0);
+		shader.setInt("texture2", 1);
+
 		//glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
-		bind(&VAOs[0], &VBOs[0], first_triangle, first_triangle_size);
-		glBindVertexArray(VAOs[0]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindVertexArray(VAO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
+		
+		glBindVertexArray(VAO);
+
+		//glBindVertexArray(0);
+
+		//bind(&VAOs[0], &VBOs[0], first_triangle, first_triangle_size);
+		//glBindVertexArray(VAOs[0]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 
-		// tells the gpu to use this shader program
-		shader.use();
-		shader.setFloat("offset", 0.1f);
+		//// tells the gpu to use this shader program
+		//shader.use();
+		//shader.setFloat("offset", 0.1f);
 
-		bind(&VAOs[1], &VBOs[1], second_triangle, second_triangle_size);
-		glBindVertexArray(VAOs[1]);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		glBindVertexArray(0);
+		//bind(&VAOs[1], &VBOs[1], second_triangle, second_triangle_size);
+		//glBindVertexArray(VAOs[1]);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glBindVertexArray(0);
 
 		// Check if the escape key was pressed, close the window if so
 		processInput(window);
@@ -122,7 +219,7 @@ void bind(unsigned int* VAO, unsigned int* VBO, float* vertices, int verticesSiz
 	glBindVertexArray(*VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, *VBO);
 	glBufferData(GL_ARRAY_BUFFER, verticesSize, vertices, GL_STATIC_DRAW);
-	
+
 	// location, size, type, normalized, stride = byte offset between consecutive vertex attributes, offset
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -139,49 +236,45 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 }
 
 void processInput(GLFWwindow* window) {
-	float move_offset = 0.00005;
-
+	unsigned short xStartPos = 0, yStartPos = 1;
+	
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
-	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		first_triangle[1] += move_offset;
-		first_triangle[7] += move_offset;
-		first_triangle[13] += move_offset;
+	
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		move(yStartPos, true);
 	}
-	else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		first_triangle[0] -= move_offset;
-		first_triangle[6] -= move_offset;
-		first_triangle[12] -= move_offset;
+	
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		move(xStartPos, false);
 	}
-	else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		first_triangle[0] += move_offset;
-		first_triangle[6] += move_offset;
-		first_triangle[12] += move_offset;
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		move(yStartPos, false);
 	}
-	else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		first_triangle[1] -= move_offset;
-		first_triangle[7] -= move_offset;
-		first_triangle[13] -= move_offset;
+	
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		move(xStartPos, true);
+	}	
+}
+
+void move(unsigned int startPos, bool increase) {
+	if (startPos == -1) {
+		return;
 	}
-	else if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-		second_triangle[1] += move_offset;
-		second_triangle[7] += move_offset;
-		second_triangle[13] += move_offset;
-	}
-	else if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-		second_triangle[0] -= move_offset;
-		second_triangle[6] -= move_offset;
-		second_triangle[12] -= move_offset;
-	}
-	else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-		second_triangle[1] -= move_offset;
-		second_triangle[7] -= move_offset;
-		second_triangle[13] -= move_offset;
-	}
-	else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		second_triangle[0] += move_offset;
-		second_triangle[6] += move_offset;
-		second_triangle[12] += move_offset;
+
+	float move_offset = 0.001;
+	unsigned short verticesLength = sizeof(vertices) / sizeof(vertices[0]);
+
+	unsigned short index = startPos;
+	while (index < verticesLength) {
+		if (increase) {
+			vertices[index] += move_offset;
+		}
+		else {
+			vertices[index] -= move_offset;
+		}
+		index += offset;
 	}
 }
